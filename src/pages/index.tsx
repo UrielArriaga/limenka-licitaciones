@@ -61,7 +61,7 @@ export default function Home() {
 
   // Vista principal con DashboardLayout
   return (
-    <DashboardLayout title="Panel General">
+    <DashboardLayout title="Panel General" allowedRoles={['admin', 'licitaciones', 'user']}>
       <Head>
         <title>Dashboard | Limenka Licitaciones</title>
       </Head>

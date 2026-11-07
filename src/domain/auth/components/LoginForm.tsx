@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User, Lock, Eye, EyeOff, Loader2, AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { toast } from '@/lib/alerts';
 
 export const LoginForm: React.FC = () => {
   const { login, isLoading, error } = useAuth();
@@ -16,13 +17,16 @@ export const LoginForm: React.FC = () => {
 
     try {
       await login({
-        username: username.trim(),
         email: username.trim(),
+        username: username.trim(),
         password,
         rememberMe,
       });
-    } catch {
-      // Manejado en useAuth
+      toast.success('¡Sesión iniciada correctamente!', {
+        description: 'Bienvenido de vuelta a Limenka Licitaciones.',
+      });
+    } catch (err: any) {
+      toast.error(err.message || 'Error al iniciar sesión');
     }
   };
 
@@ -143,19 +147,6 @@ export const LoginForm: React.FC = () => {
             </>
           )}
         </button>
-
-        {/* Rápido Demo */}
-        <div className="pt-2">
-          <button
-            type="button"
-            onClick={handleFillDemo}
-            className="w-full py-2.5 px-3 rounded-xl border border-dashed border-blue-200 bg-blue-50/60 hover:bg-blue-50 text-blue-700 text-xs font-medium flex items-center justify-center gap-2 transition-all group"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-blue-500 group-hover:rotate-12 transition-transform" />
-            <span>Acceso demo:</span>
-            <span className="font-semibold underline decoration-blue-300">admin / 123456</span>
-          </button>
-        </div>
       </form>
     </div>
   );

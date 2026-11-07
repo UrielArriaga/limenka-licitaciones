@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X, Calendar, DollarSign, Building, FileText, CheckCircle2, Shield } from 'lucide-react';
 import { Licitacion } from '../types/licitacion.types';
 import { StatusBadge } from './StatusBadge';
@@ -12,6 +12,16 @@ export const LicitacionDetalleModal: React.FC<LicitacionDetalleModalProps> = ({
   licitacion,
   onClose,
 }) => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (licitacion) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [licitacion, onClose]);
+
   if (!licitacion) return null;
 
   const formatCurrency = (amount: number, currency: string) => {
@@ -23,8 +33,14 @@ export const LicitacionDetalleModal: React.FC<LicitacionDetalleModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden animate-fadeIn">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden animate-fadeIn"
+      >
         {/* Cabecera */}
         <div className="px-6 py-5 border-b border-slate-100 flex items-start justify-between bg-slate-50/50">
           <div>

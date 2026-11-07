@@ -1,22 +1,39 @@
 import { apiClient } from '@/lib/apiClient';
 import { AuthResponse, LoginApiResponse, LoginCredentials } from '../types/auth.types';
+import { parseApiError } from '@/lib/alerts';
+import Cookies from 'js-cookie';
+import { ISPRODUCTION } from '@/config/constants';
 
 export const authService = {
   /**
-   * Petición de login contra la API (auth/login)
-   * Espera respuesta: { data: { id, username, isonline, ... }, refreshToken, tokenSession }
+   * Petición de login contra apidev.limenka360.com/auth/login
    */
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const identifier = credentials.username || credentials.email || '';
+    const rawEmail = credentials.email || credentials.username || '';
+    const body = {
+      email: rawEmail.trim(),
+      password: credentials.password,
+    };
 
     try {
-      const response = await apiClient.post<LoginApiResponse>('auth/login', {
-        username: identifier,
-        email: identifier,
-        password: credentials.password,
-      });
-
+      const response = await apiClient.post<LoginApiResponse>('auth/login', body);
       const { data, tokenSession, refreshToken } = response.data;
+
+      // Guardar en Cookies seguras
+      if (typeof window !== 'undefined') {
+        Cookies.set('token', tokenSession, {
+          expires: 7,
+          secure: ISPRODUCTION === 'true',
+          sameSite: 'lax',
+          path: '/',
+        });
+        Cookies.set('refresh_token', refreshToken, {
+          expires: 7,
+          secure: ISPRODUCTION === 'true',
+          sameSite: 'lax',
+          path: '/',
+        });
+      }
 
       return {
         user: data,
@@ -24,42 +41,40 @@ export const authService = {
         refreshToken,
       };
     } catch (apiError: any) {
+      const internalCode = apiError?.response?.data?.internalCode;
+
+      if (internalCode === '00001') {
+        throw new Error('El correo o usuario no existe');
+      }
+
+      if (internalCode === '10002') {
+        throw new Error('Correo o contraseña incorrecta');
+      }
+
       if (apiError.response?.data?.message) {
         throw new Error(apiError.response.data.message);
       }
 
-      if (apiError.response?.data?.error) {
-        throw new Error(apiError.response.data.error);
-      }
-
-      // Modo demostración para pruebas locales si falla la conexión
-      if (identifier === 'admin' || identifier === 'admin@limenka.com') {
-        if (credentials.password === '123456') {
-          return {
-            user: {
-              id: 'cL8RUataA4NFp2TzgmtG1KtP',
-              username: 'GABL',
-              isonline: true,
-              role: 'admin',
-              name: 'GABL Administrador',
-            },
-            tokenSession: 'mock-tokenSession-jwt-limenka360',
-            refreshToken: 'mock-refreshToken-limenka360',
-          };
-        }
-      }
-
-      throw new Error(
-        apiError.message || 'Error al autenticar con el servidor de Limenka 360'
-      );
+      const parsed = parseApiError(apiError);
+      throw new Error(parsed.description || 'Error de conexión con el servidor');
     }
   },
 
   async logout(): Promise<void> {
+    if (typeof window !== 'undefined') {
+      Cookies.remove('token', { path: '/' });
+      Cookies.remove('refresh_token', { path: '/' });
+      Cookies.remove('limenka-auth-session', { path: '/' });
+      // Limpiar rastros de localStorage
+      localStorage.removeItem('token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+    }
+
     try {
       await apiClient.post('auth/logout');
     } catch {
-      // Ignorar si el endpoint no está implementado
+      // Ignorar si el endpoint en el backend responde 500 o no está implementado
     }
   },
 };
