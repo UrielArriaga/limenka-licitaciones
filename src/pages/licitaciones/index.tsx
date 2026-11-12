@@ -285,10 +285,11 @@ export default function LicitacionesDashboardPage() {
           }}
         />
 
-        {/* Modal de Detalle */}
+        {/* Modal de Detalle y Expediente Inteligente */}
         <LicitacionDetalleModal
           licitacion={selectedLicitacion}
           onClose={() => setSelectedLicitacion(null)}
+          onPendingCreated={loadExtraData}
         />
       </div>
     </DashboardLayout>

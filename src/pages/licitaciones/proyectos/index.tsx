@@ -2,17 +2,19 @@ import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { licitacionesService } from '@/domain/licitaciones/services/licitacionesService';
-import { LicitacionProject } from '@/domain/licitaciones/types/licitacion.types';
 import {
-  FolderKanban,
+  Licitacion,
+  LicitacionProject,
+} from '@/domain/licitaciones/types/licitacion.types';
+import { LicitacionDetalleModal } from '@/domain/licitaciones/components/LicitacionDetalleModal';
+import {
   Building,
   DollarSign,
-  Calendar,
   User,
   Plus,
   Search,
-  Filter,
   RefreshCw,
+  Sparkles,
 } from 'lucide-react';
 import { toast } from '@/lib/alerts';
 import { useDebounce } from '@/shared/hooks/useDebounce';
@@ -29,6 +31,26 @@ export default function LicitacionesProyectosPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounce(searchTerm, 400);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedProjectLicitacion, setSelectedProjectLicitacion] =
+    useState<Licitacion | null>(null);
+
+  const openProjectDossier = (prj: LicitacionProject) => {
+    setSelectedProjectLicitacion({
+      id: prj.id,
+      codigo: prj.folio || `PRJ-${prj.id}`,
+      titulo: prj.name,
+      descripcion: `Expediente inteligente vinculado al proyecto ${prj.folio || prj.id} en fase "${prj.phaseName}".`,
+      entidad: prj.prospectName || 'Entidad Convocante',
+      categoria: 'Salud',
+      estado: prj.phaseName === 'Adjudicada' ? 'adjudicada' : 'en_evaluacion',
+      presupuestoEstimado: prj.amount,
+      moneda: 'MXN',
+      fechaPublicacion: '2026-10-20',
+      fechaCierre: prj.expectedDate || '2026-11-28',
+      propuestasCount: 4,
+      documentosCount: 1,
+    });
+  };
 
   const fetchProjects = async () => {
     setIsLoading(true);
@@ -175,6 +197,7 @@ export default function LicitacionesProyectosPage() {
                     {columnProjects.map((prj) => (
                       <div
                         key={prj.id}
+                        onClick={() => openProjectDossier(prj)}
                         className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-xs hover:shadow-md transition-all cursor-pointer group"
                       >
                         <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
@@ -207,12 +230,29 @@ export default function LicitacionesProyectosPage() {
                               <span className="truncate max-w-[100px]">{prj.assignedTo}</span>
                             </span>
 
-                            <button
-                              onClick={() => handleMovePhase(prj.id, prj.phaseName)}
-                              className="text-blue-600 hover:text-blue-800 font-semibold text-[10px] hover:underline"
-                            >
-                              Avanzar fase →
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openProjectDossier(prj);
+                                }}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-semibold text-[10px]"
+                              >
+                                <Sparkles className="w-2.5 h-2.5" />
+                                <span>Expediente IA</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMovePhase(prj.id, prj.phaseName);
+                                }}
+                                className="text-blue-600 hover:text-blue-800 font-semibold text-[10px] hover:underline"
+                              >
+                                Avanzar →
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -229,6 +269,11 @@ export default function LicitacionesProyectosPage() {
             })}
           </div>
         )}
+
+        <LicitacionDetalleModal
+          licitacion={selectedProjectLicitacion}
+          onClose={() => setSelectedProjectLicitacion(null)}
+        />
       </div>
     </DashboardLayout>
   );
